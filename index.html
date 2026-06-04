@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Link Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --wa: #25D366;
+  --wa-dark: #128C7E;
+  --wa-header: #075E54;
+  --wa-chat-bg: #ECE5DD;
+  --wa-bubble-out: #DCF8C6;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #f0f2f5;
+  min-height: 100vh;
+  color: #111;
+}
+body.rtl { direction: rtl; }
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.header-icon {
+  width: 52px; height: 52px;
+  background: var(--wa);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+}
+.header-icon svg { width: 28px; height: 28px; fill: #fff; }
+.header h1 { font-size: 22px; font-weight: 500; color: #1a1a1a; }
+.header p { font-size: 14px; color: #666; margin-top: 4px; }
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+/* Form */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.phone-row { display: flex; gap: 8px; }
+.phone-row select {
+  width: 148px;
+  flex-shrink: 0;
+  padding: 10px 8px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  background: #fafafa;
+  color: #111;
+  outline: none;
+  cursor: pointer;
+}
+.phone-row input {
+  flex: 1;
+  min-width: 0;
+}
+input[type=tel], textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  color: #111;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type=tel]:focus, textarea:focus, select:focus {
+  border-color: var(--wa);
+  background: #fff;
+}
+textarea { resize: none; height: 80px; line-height: 1.55; }
+.err {
+  font-size: 12px;
+  color: #e53e3e;
+  margin-top: 4px;
+  display: none;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f9fa;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1.5px solid #e5e7eb;
+  gap: 10px;
+}
+.toggle-label { font-size: 13px; color: #555; }
+.toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: #ccc;
+  border-radius: 22px;
+  cursor: pointer;
+  transition: .2s;
+}
+.toggle-slider:before {
+  content: "";
+  position: absolute;
+  width: 16px; height: 16px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--wa); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+/* Buttons */
+.btn-wa {
+  width: 100%;
+  padding: 12px;
+  background: var(--wa);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.15s;
+  margin-bottom: 8px;
+}
+.btn-wa:hover { background: var(--wa-dark); }
+.btn-copy {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  color: #555;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.15s;
+}
+.btn-copy:hover { background: #f8f9fa; border-color: #ccc; }
+.btn-wa svg, .btn-copy svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Toast */
+.toast {
+  text-align: center;
+  font-size: 13px;
+  color: var(--wa-dark);
+  font-weight: 500;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.2s, padding 0.2s;
+  margin-top: 0;
+}
+.toast.show { height: 32px; padding-top: 8px; }
+
+/* Preview panel */
+.preview-label {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* Phone mockup */
+.phone-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
+.phone {
+  background: #1c1c2e;
+  border-radius: 36px;
+  padding: 14px 10px;
+  width: 230px;
+  flex-shrink: 0;
+}
+.phone-notch {
+  width: 60px; height: 10px;
+  background: #0d0d1a;
+  border-radius: 5px;
+  margin: 0 auto 10px;
+}
+.phone-screen {
+  background: var(--wa-chat-bg);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.wa-bar {
+  background: var(--wa-header);
+  padding: 10px 12px;
+  display: flex; align-items: center; gap: 9px;
+}
+.wa-av {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--wa);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.wa-av svg { width: 17px; height: 17px; fill: #fff; }
+.wa-info { flex: 1; min-width: 0; }
+.wa-num { font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa-sub { font-size: 9px; color: #b2dfdb; }
+.wa-msgs {
+  padding: 10px;
+  min-height: 130px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--wa-chat-bg);
+}
+.wa-date-lbl {
+  align-self: center;
+  background: rgba(255,255,255,0.65);
+  border-radius: 8px;
+  padding: 2px 10px;
+  font-size: 9px;
+  color: #667781;
+  margin-bottom: 2px;
+}
+.bubble {
+  max-width: 88%;
+  padding: 7px 10px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #111;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.bubble-in {
+  align-self: flex-start;
+  background: #fff;
+  border-radius: 0 10px 10px 10px;
+}
+.bubble-out {
+  align-self: flex-end;
+  background: var(--wa-bubble-out);
+  border-radius: 10px 0 10px 10px;
+  direction: ltr;
+}
+.bubble-out.rtl-msg { direction: rtl; }
+.bubble-time {
+  font-size: 8.5px;
+  color: #667781;
+  text-align: right;
+  margin-top: 2px;
+}
+.wa-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 120px; gap: 6px; opacity: 0.4;
+}
+.wa-empty svg { width: 32px; height: 32px; fill: var(--wa); }
+.wa-empty span { font-size: 10px; color: #667781; text-align: center; padding: 0 10px; }
+
+/* Link box */
+.link-box {
+  background: #f8f9fa;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  display: none;
+}
+.link-box-label { font-size: 10px; color: #999; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+.link-box-url { font-size: 10.5px; font-family: monospace; color: var(--wa-dark); word-break: break-all; direction: ltr; text-align: left; }
+
+/* QR */
+.qr-section { display: none; flex-direction: column; align-items: center; gap: 6px; }
+.qr-box {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+.qr-caption { font-size: 11px; color: #888; text-align: center; }
+
+/* RTL adjustments */
+body.rtl .phone-row { flex-direction: row-reverse; }
+body.rtl .toggle-row { flex-direction: row-reverse; }
+body.rtl .link-box-url { text-align: left; direction: ltr; }
+body.rtl input[type=tel] { direction: ltr; text-align: right; }
+
+@media (max-width: 640px) {
+  .page { padding: 1rem 0.75rem 2rem; }
+  .card { padding: 1.25rem; }
+  .phone { width: 200px; }
+  .header h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    </div>
+    <h1 id="t-title">WhatsApp Link Generator</h1>
+    <p id="t-subtitle">Create a click-to-chat link with a pre-filled message</p>
+  </div>
+
+  <div class="grid">
+    <!-- Form -->
+    <div class="card">
+      <div class="field">
+        <label id="t-phone-lbl">Phone number</label>
+        <div class="phone-row">
+          <select id="dial" onchange="gen()"></select>
+          <input type="tel" id="phone" oninput="gen()" placeholder="505555447">
+        </div>
+        <div class="err" id="perr">Invalid number</div>
+      </div>
+
+      <div class="field">
+        <label id="t-msg-lbl">Pre-filled message <span style="font-weight:400;opacity:0.6" id="t-opt">(optional)</span></label>
+        <textarea id="msg" oninput="gen()"></textarea>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" id="t-toggle">Show full API link</span>
+        <label class="toggle">
+          <input type="checkbox" id="full-toggle" onchange="gen()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <button class="btn-wa" onclick="doOpen()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <span id="t-open">Open in WhatsApp</span>
+      </button>
+      <button class="btn-copy" onclick="doCopy()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span id="t-copy">Copy link</span>
+      </button>
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <!-- Preview -->
+    <div class="card">
+      <div class="preview-label" id="t-preview">— preview only —</div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="wa-bar">
+              <div class="wa-av">
+                <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <div class="wa-info">
+                <div class="wa-num" id="wa-num">—</div>
+                <div class="wa-sub" id="t-status">tap to open chat</div>
+              </div>
+            </div>
+            <div class="wa-msgs" id="wa-msgs">
+              <div class="wa-empty" id="wa-empty">
+                <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                <span id="t-hint">Enter a number to preview</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="link-box" id="link-box">
+        <div class="link-box-label" id="t-link-lbl">Generated link</div>
+        <div class="link-box-url" id="link-url"></div>
+      </div>
+
+      <div class="qr-section" id="qr-section">
+        <div class="qr-box"><img id="qr-img" width="130" height="130" alt="QR Code"></div>
+        <div class="qr-caption" id="t-qr">Scan to open WhatsApp</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:11px;color:#aaa;margin-top:1.5rem" id="t-footer"></p>
+</div>
+
+<script>
+const COUNTRIES = [
+  {d:"+93",f:"🇦🇫",n:"Afghanistan"},{d:"+355",f:"🇦🇱",n:"Albania"},{d:"+213",f:"🇩🇿",n:"Algeria"},
+  {d:"+376",f:"🇦🇩",n:"Andorra"},{d:"+244",f:"🇦🇴",n:"Angola"},{d:"+1-268",f:"🇦🇬",n:"Antigua & Barbuda"},
+  {d:"+54",f:"🇦🇷",n:"Argentina"},{d:"+374",f:"🇦🇲",n:"Armenia"},{d:"+61",f:"🇦🇺",n:"Australia"},
+  {d:"+43",f:"🇦🇹",n:"Austria"},{d:"+994",f:"🇦🇿",n:"Azerbaijan"},{d:"+1-242",f:"🇧🇸",n:"Bahamas"},
+  {d:"+973",f:"🇧🇭",n:"Bahrain"},{d:"+880",f:"🇧🇩",n:"Bangladesh"},{d:"+1-246",f:"🇧🇧",n:"Barbados"},
+  {d:"+375",f:"🇧🇾",n:"Belarus"},{d:"+32",f:"🇧🇪",n:"Belgium"},{d:"+501",f:"🇧🇿",n:"Belize"},
+  {d:"+229",f:"🇧🇯",n:"Benin"},{d:"+975",f:"🇧🇹",n:"Bhutan"},{d:"+591",f:"🇧🇴",n:"Bolivia"},
+  {d:"+387",f:"🇧🇦",n:"Bosnia"},{d:"+267",f:"🇧🇼",n:"Botswana"},{d:"+55",f:"🇧🇷",n:"Brazil"},
+  {d:"+673",f:"🇧🇳",n:"Brunei"},{d:"+359",f:"🇧🇬",n:"Bulgaria"},{d:"+226",f:"🇧🇫",n:"Burkina Faso"},
+  {d:"+257",f:"🇧🇮",n:"Burundi"},{d:"+855",f:"🇰🇭",n:"Cambodia"},{d:"+237",f:"🇨🇲",n:"Cameroon"},
+  {d:"+1",f:"🇨🇦",n:"Canada"},{d:"+238",f:"🇨🇻",n:"Cape Verde"},{d:"+236",f:"🇨🇫",n:"Central African Rep."},
+  {d:"+235",f:"🇹🇩",n:"Chad"},{d:"+56",f:"🇨🇱",n:"Chile"},{d:"+86",f:"🇨🇳",n:"China"},
+  {d:"+57",f:"🇨🇴",n:"Colombia"},{d:"+269",f:"🇰🇲",n:"Comoros"},{d:"+242",f:"🇨🇬",n:"Congo"},
+  {d:"+243",f:"🇨🇩",n:"Congo DR"},{d:"+506",f:"🇨🇷",n:"Costa Rica"},{d:"+225",f:"🇨🇮",n:"Côte d'Ivoire"},
+  {d:"+385",f:"🇭🇷",n:"Croatia"},{d:"+53",f:"🇨🇺",n:"Cuba"},{d:"+357",f:"🇨🇾",n:"Cyprus"},
+  {d:"+420",f:"🇨🇿",n:"Czech Republic"},{d:"+45",f:"🇩🇰",n:"Denmark"},{d:"+253",f:"🇩🇯",n:"Djibouti"},
+  {d:"+1-767",f:"🇩🇲",n:"Dominica"},{d:"+1-809",f:"🇩🇴",n:"Dominican Republic"},{d:"+593",f:"🇪🇨",n:"Ecuador"},
+  {d:"+20",f:"🇪🇬",n:"Egypt"},{d:"+503",f:"🇸🇻",n:"El Salvador"},{d:"+240",f:"🇬🇶",n:"Equatorial Guinea"},
+  {d:"+291",f:"🇪🇷",n:"Eritrea"},{d:"+372",f:"🇪🇪",n:"Estonia"},{d:"+268",f:"🇸🇿",n:"Eswatini"},
+  {d:"+251",f:"🇪🇹",n:"Ethiopia"},{d:"+679",f:"🇫🇯",n:"Fiji"},{d:"+358",f:"🇫🇮",n:"Finland"},
+  {d:"+33",f:"🇫🇷",n:"France"},{d:"+241",f:"🇬🇦",n:"Gabon"},{d:"+220",f:"🇬🇲",n:"Gambia"},
+  {d:"+995",f:"🇬🇪",n:"Georgia"},{d:"+49",f:"🇩🇪",n:"Germany"},{d:"+233",f:"🇬🇭",n:"Ghana"},
+  {d:"+30",f:"🇬🇷",n:"Greece"},{d:"+1-473",f:"🇬🇩",n:"Grenada"},{d:"+502",f:"🇬🇹",n:"Guatemala"},
+  {d:"+224",f:"🇬🇳",n:"Guinea"},{d:"+245",f:"🇬🇼",n:"Guinea-Bissau"},{d:"+592",f:"🇬🇾",n:"Guyana"},
+  {d:"+509",f:"🇭🇹",n:"Haiti"},{d:"+504",f:"🇭🇳",n:"Honduras"},{d:"+36",f:"🇭🇺",n:"Hungary"},
+  {d:"+354",f:"🇮🇸",n:"Iceland"},{d:"+91",f:"🇮🇳",n:"India"},{d:"+62",f:"🇮🇩",n:"Indonesia"},
+  {d:"+98",f:"🇮🇷",n:"Iran"},{d:"+964",f:"🇮🇶",n:"Iraq"},{d:"+353",f:"🇮🇪",n:"Ireland"},
+  {d:"+972",f:"🇮🇱",n:"Israel"},{d:"+39",f:"🇮🇹",n:"Italy"},{d:"+1-876",f:"🇯🇲",n:"Jamaica"},
+  {d:"+81",f:"🇯🇵",n:"Japan"},{d:"+962",f:"🇯🇴",n:"Jordan"},{d:"+7",f:"🇰🇿",n:"Kazakhstan (+7 KZ)"},
+  {d:"+254",f:"🇰🇪",n:"Kenya"},{d:"+686",f:"🇰🇮",n:"Kiribati"},{d:"+965",f:"🇰🇼",n:"Kuwait"},
+  {d:"+996",f:"🇰🇬",n:"Kyrgyzstan"},{d:"+856",f:"🇱🇦",n:"Laos"},{d:"+371",f:"🇱🇻",n:"Latvia"},
+  {d:"+961",f:"🇱🇧",n:"Lebanon"},{d:"+266",f:"🇱🇸",n:"Lesotho"},{d:"+231",f:"🇱🇷",n:"Liberia"},
+  {d:"+218",f:"🇱🇾",n:"Libya"},{d:"+423",f:"🇱🇮",n:"Liechtenstein"},{d:"+370",f:"🇱🇹",n:"Lithuania"},
+  {d:"+352",f:"🇱🇺",n:"Luxembourg"},{d:"+261",f:"🇲🇬",n:"Madagascar"},{d:"+265",f:"🇲🇼",n:"Malawi"},
+  {d:"+60",f:"🇲🇾",n:"Malaysia"},{d:"+960",f:"🇲🇻",n:"Maldives"},{d:"+223",f:"🇲🇱",n:"Mali"},
+  {d:"+356",f:"🇲🇹",n:"Malta"},{d:"+692",f:"🇲🇭",n:"Marshall Islands"},{d:"+222",f:"🇲🇷",n:"Mauritania"},
+  {d:"+230",f:"🇲🇺",n:"Mauritius"},{d:"+52",f:"🇲🇽",n:"Mexico"},{d:"+691",f:"🇫🇲",n:"Micronesia"},
+  {d:"+373",f:"🇲🇩",n:"Moldova"},{d:"+377",f:"🇲🇨",n:"Monaco"},{d:"+976",f:"🇲🇳",n:"Mongolia"},
+  {d:"+382",f:"🇲🇪",n:"Montenegro"},{d:"+212",f:"🇲🇦",n:"Morocco"},{d:"+258",f:"🇲🇿",n:"Mozambique"},
+  {d:"+95",f:"🇲🇲",n:"Myanmar"},{d:"+264",f:"🇳🇦",n:"Namibia"},{d:"+674",f:"🇳🇷",n:"Nauru"},
+  {d:"+977",f:"🇳🇵",n:"Nepal"},{d:"+31",f:"🇳🇱",n:"Netherlands"},{d:"+64",f:"🇳🇿",n:"New Zealand"},
+  {d:"+505",f:"🇳🇮",n:"Nicaragua"},{d:"+227",f:"🇳🇪",n:"Niger"},{d:"+234",f:"🇳🇬",n:"Nigeria"},
+  {d:"+850",f:"🇰🇵",n:"North Korea"},{d:"+389",f:"🇲🇰",n:"North Macedonia"},{d:"+47",f:"🇳🇴",n:"Norway"},
+  {d:"+968",f:"🇴🇲",n:"Oman"},{d:"+92",f:"🇵🇰",n:"Pakistan"},{d:"+680",f:"🇵🇼",n:"Palau"},
+  {d:"+970",f:"🇵🇸",n:"Palestine"},{d:"+507",f:"🇵🇦",n:"Panama"},{d:"+675",f:"🇵🇬",n:"Papua New Guinea"},
+  {d:"+595",f:"🇵🇾",n:"Paraguay"},{d:"+51",f:"🇵🇪",n:"Peru"},{d:"+63",f:"🇵🇭",n:"Philippines"},
+  {d:"+48",f:"🇵🇱",n:"Poland"},{d:"+351",f:"🇵🇹",n:"Portugal"},{d:"+974",f:"🇶🇦",n:"Qatar"},
+  {d:"+40",f:"🇷🇴",n:"Romania"},{d:"+7",f:"🇷🇺",n:"Russia"},{d:"+250",f:"🇷🇼",n:"Rwanda"},
+  {d:"+1-869",f:"🇰🇳",n:"Saint Kitts & Nevis"},{d:"+1-758",f:"🇱🇨",n:"Saint Lucia"},{d:"+1-784",f:"🇻🇨",n:"Saint Vincent"},
+  {d:"+685",f:"🇼🇸",n:"Samoa"},{d:"+378",f:"🇸🇲",n:"San Marino"},{d:"+239",f:"🇸🇹",n:"São Tomé & Príncipe"},
+  {d:"+966",f:"🇸🇦",n:"Saudi Arabia"},{d:"+221",f:"🇸🇳",n:"Senegal"},{d:"+381",f:"🇷🇸",n:"Serbia"},
+  {d:"+248",f:"🇸🇨",n:"Seychelles"},{d:"+232",f:"🇸🇱",n:"Sierra Leone"},{d:"+65",f:"🇸🇬",n:"Singapore"},
+  {d:"+421",f:"🇸🇰",n:"Slovakia"},{d:"+386",f:"🇸🇮",n:"Slovenia"},{d:"+677",f:"🇸🇧",n:"Solomon Islands"},
+  {d:"+252",f:"🇸🇴",n:"Somalia"},{d:"+27",f:"🇿🇦",n:"South Africa"},{d:"+82",f:"🇰🇷",n:"South Korea"},
+  {d:"+211",f:"🇸🇸",n:"South Sudan"},{d:"+34",f:"🇪🇸",n:"Spain"},{d:"+94",f:"🇱🇰",n:"Sri Lanka"},
+  {d:"+249",f:"🇸🇩",n:"Sudan"},{d:"+597",f:"🇸🇷",n:"Suriname"},{d:"+46",f:"🇸🇪",n:"Sweden"},
+  {d:"+41",f:"🇨🇭",n:"Switzerland"},{d:"+963",f:"🇸🇾",n:"Syria"},{d:"+886",f:"🇹🇼",n:"Taiwan"},
+  {d:"+992",f:"🇹🇯",n:"Tajikistan"},{d:"+255",f:"🇹🇿",n:"Tanzania"},{d:"+66",f:"🇹🇭",n:"Thailand"},
+  {d:"+670",f:"🇹🇱",n:"Timor-Leste"},{d:"+228",f:"🇹🇬",n:"Togo"},{d:"+676",f:"🇹🇴",n:"Tonga"},
+  {d:"+1-868",f:"🇹🇹",n:"Trinidad & Tobago"},{d:"+216",f:"🇹🇳",n:"Tunisia"},{d:"+90",f:"🇹🇷",n:"Turkey"},
+  {d:"+993",f:"🇹🇲",n:"Turkmenistan"},{d:"+688",f:"🇹🇻",n:"Tuvalu"},{d:"+256",f:"🇺🇬",n:"Uganda"},
+  {d:"+380",f:"🇺🇦",n:"Ukraine"},{d:"+971",f:"🇦🇪",n:"UAE"},{d:"+44",f:"🇬🇧",n:"United Kingdom"},
+  {d:"+1",f:"🇺🇸",n:"United States"},{d:"+598",f:"🇺🇾",n:"Uruguay"},{d:"+998",f:"🇺🇿",n:"Uzbekistan"},
+  {d:"+678",f:"🇻🇺",n:"Vanuatu"},{d:"+58",f:"🇻🇪",n:"Venezuela"},{d:"+84",f:"🇻🇳",n:"Vietnam"},
+  {d:"+967",f:"🇾🇪",n:"Yemen"},{d:"+260",f:"🇿🇲",n:"Zambia"},{d:"+263",f:"🇿🇼",n:"Zimbabwe"},
+];
+
+const T = {
+  en: {
+    title: "WhatsApp Link Generator",
+    subtitle: "Create a click-to-chat link with a pre-filled message",
+    phoneLbl: "Phone number", msgLbl: "Pre-filled message", opt: "(optional)",
+    toggle: "Show full API link", open: "Open in WhatsApp", copy: "Copy link",
+    preview: "— preview only —", hint: "Enter a number to preview",
+    status: "tap to open chat", linkLbl: "Generated link", qr: "Scan to open WhatsApp",
+    copied: "Copied!", invalid: "Invalid phone number", noMsg: "Your message will appear here",
+    footer: "© {year} Netolink.com · All rights reserved"
+  },
+  he: {
+    title: "מחולל קישורי וואטסאפ",
+    subtitle: "צרו קישור לפתיחת שיחה עם הודעה מקדימה",
+    phoneLbl: "מספר טלפון", msgLbl: "הודעה מקדימה", opt: "(לא חובה)",
+    toggle: "הצג קישור API מלא", open: "פתח בוואטסאפ", copy: "העתק קישור",
+    preview: "— תצוגה מקדימה בלבד —", hint: "הזן מספר לתצוגה מקדימה",
+    status: "לחץ לפתיחת שיחה", linkLbl: "הקישור שנוצר", qr: "סרוק לפתיחת וואטסאפ",
+    copied: "הועתק!", invalid: "מספר טלפון לא תקין", noMsg: "ההודעה שלך תופיע כאן",
+    footer: "© {year} Netolink.com · כל הזכויות שמורות"
+  },
+  ru: {
+    title: "Генератор ссылок WhatsApp",
+    subtitle: "Создайте ссылку для чата с предустановленным сообщением",
+    phoneLbl: "Номер телефона", msgLbl: "Предустановленное сообщение", opt: "(необязательно)",
+    toggle: "Показать полную API ссылку", open: "Открыть в WhatsApp", copy: "Копировать ссылку",
+    preview: "— только предпросмотр —", hint: "Введите номер для просмотра",
+    status: "нажмите чтобы открыть", linkLbl: "Сгенерированная ссылка", qr: "Сканируйте для WhatsApp",
+    copied: "Скопировано!", invalid: "Неверный номер телефона", noMsg: "Ваше сообщение появится здесь",
+    footer: "© {year} Netolink.com · Все права защищены"
+  }
+};
+
+const DEFAULTS = { he: {d:"+972",n:"Israel"}, en: {d:"+1",n:"United States"}, ru: {d:"+7",n:"Russia"} };
+
+let lang = 'en', link = '';
+
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  lang = params.get('lang') || 'en';
+  if (!T[lang]) lang = 'en';
+
+  if (lang === 'he') {
+    document.body.classList.add('rtl');
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+
+  buildSelect();
+  applyT();
+}
+
+function buildSelect() {
+  const s = document.getElementById('dial');
+  s.innerHTML = COUNTRIES.map(c => `<option value="${c.d}">${c.f} ${c.d} ${c.n}</option>`).join('');
+  const def = DEFAULTS[lang]; const opt = Array.from(s.options).find(o => o.value === def.d && o.text.includes(def.n)); if(opt) s.value = opt.value, s.selectedIndex = opt.index; else s.value = def.d;
+  s.addEventListener('change', gen);
+}
+
+function applyT() {
+  const t = T[lang];
+  document.getElementById('t-title').textContent = t.title;
+  document.getElementById('t-subtitle').textContent = t.subtitle;
+  document.getElementById('t-phone-lbl').textContent = t.phoneLbl;
+  document.getElementById('t-msg-lbl').childNodes[0].textContent = t.msgLbl + ' ';
+  document.getElementById('t-opt').textContent = t.opt;
+  document.getElementById('t-toggle').textContent = t.toggle;
+  document.getElementById('t-open').textContent = t.open;
+  document.getElementById('t-copy').textContent = t.copy;
+  document.getElementById('t-preview').textContent = t.preview;
+  document.getElementById('t-hint').textContent = t.hint;
+  document.getElementById('t-status').textContent = t.status;
+  document.getElementById('t-link-lbl').textContent = t.linkLbl;
+  document.getElementById('t-qr').textContent = t.qr;
+  document.getElementById('t-footer').textContent = t.footer.replace('{year}', new Date().getFullYear());
+  document.getElementById('msg').placeholder = t.noMsg;
+  if (lang === 'he') {
+    document.getElementById('msg').style.direction = 'rtl';
+    document.getElementById('msg').style.textAlign = 'right';
+  }
+}
+
+function getNow() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function getDateLabel() {
+  const locale = lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US';
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date());
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function gen() {
+  const dial = document.getElementById('dial').value;
+  let phone = document.getElementById('phone').value.replace(/\D/g,'');
+  const msg = document.getElementById('msg').value;
+  const fullMode = document.getElementById('full-toggle').checked;
+  const errEl = document.getElementById('perr');
+
+  if (!phone) {
+    link = '';
+    errEl.style.display = 'none';
+    document.getElementById('link-box').style.display = 'none';
+    document.getElementById('qr-section').style.display = 'none';
+    resetPreview();
+    return;
+  }
+
+  if (phone.length < 6 || phone.length > 15) {
+    errEl.style.display = 'block';
+    errEl.textContent = T[lang].invalid;
+    link = '';
+    document.getElementById('link-box').style.display = 'none';
+    document.getElementById('qr-section').style.display = 'none';
+    resetPreview();
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if (phone.startsWith('0')) phone = phone.slice(1);
+  const num = dial.replace('+','') + phone;
+  const displayNum = dial + ' ' + phone;
+  const msgTrimmed = msg.trim();
+
+  link = fullMode
+    ? 'https://api.whatsapp.com/send?phone=' + num + (msgTrimmed ? '&text=' + encodeURIComponent(msgTrimmed) : '')
+    : 'https://wa.me/' + num + (msgTrimmed ? '?text=' + encodeURIComponent(msgTrimmed) : '');
+
+  document.getElementById('wa-num').textContent = displayNum;
+  document.getElementById('link-url').textContent = link;
+  document.getElementById('link-box').style.display = 'block';
+
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=130x130&color=000000&bgcolor=ffffff&format=png&data=' + encodeURIComponent(link);
+  const img = document.getElementById('qr-img');
+  img.src = qrUrl;
+  document.getElementById('qr-section').style.display = 'flex';
+
+  const isRTL = /[\u0590-\u05FF\u0600-\u06FF]/.test(msgTrimmed);
+  const time = getNow();
+  const msgEl = document.getElementById('wa-msgs');
+  msgEl.innerHTML =
+    '<div class="wa-date-lbl">' + getDateLabel() + '</div>' +
+    '<div class="bubble bubble-in"><span style="font-size:9.5px;color:#aaa;font-style:italic">' + T[lang].noMsg + '</span></div>' +
+    (msgTrimmed ? '<div class="bubble bubble-out' + (isRTL ? ' rtl-msg' : '') + '">' + esc(msgTrimmed) + '<div class="bubble-time">' + time + '</div></div>' : '');
+}
+
+function resetPreview() {
+  document.getElementById('wa-num').textContent = '—';
+  document.getElementById('wa-msgs').innerHTML =
+    '<div class="wa-empty" id="wa-empty">' +
+    '<svg viewBox="0 0 24 24" width="32" height="32" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
+    '<span>' + T[lang].hint + '</span></div>';
+}
+
+function doCopy() {
+  if (!link) return;
+  navigator.clipboard.writeText(link).then(() => {
+    const t = document.getElementById('toast');
+    t.textContent = T[lang].copied;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  });
+}
+
+function doOpen() {
+  if (link) window.open(link, '_blank');
+}
+
+init();
+</script>
+</body>
+</html>
