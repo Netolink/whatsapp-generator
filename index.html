@@ -317,6 +317,9 @@ textarea { resize: none; height: 80px; line-height: 1.55; }
   padding: 8px;
 }
 .qr-caption { font-size: 11px; color: #888; text-align: center; }
+.qr-desc { font-size: 11px; color: #999; text-align: center; line-height: 1.5; margin-top: 2px; padding: 0 4px; }
+.btn-dl { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; padding: 8px 14px; background: #f0faf4; border: 1.5px solid #25D366; border-radius: 8px; color: #128C7E; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.btn-dl:hover { background: #d6f5e3; }
 
 /* RTL adjustments */
 body.rtl .phone-row { flex-direction: row-reverse; }
@@ -412,6 +415,11 @@ body.rtl input[type=tel] { direction: ltr; text-align: right; }
       <div class="qr-section" id="qr-section">
         <div class="qr-box"><img id="qr-img" width="130" height="130" alt="QR Code"></div>
         <div class="qr-caption" id="t-qr">Scan to open WhatsApp</div>
+        <p class="qr-desc" id="t-qr-desc"></p>
+        <button class="btn-dl" id="btn-dl-qr" onclick="dlQr()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="t-dl-qr">Download QR Code</span>
+        </button>
       </div>
     </div>
   </div>
@@ -495,7 +503,8 @@ const T = {
     phoneLbl: "Phone number", msgLbl: "Pre-filled message", opt: "(optional)",
     toggle: "Show full API link", open: "Open in WhatsApp", copy: "Copy link",
     preview: "— preview only —", hint: "Enter a number to preview",
-    status: "tap to open chat", linkLbl: "Generated link", qr: "Scan to open WhatsApp",
+    status: "tap to open chat", linkLbl: "Generated link", qr: "Scan or share to open WhatsApp",
+    qrDesc: "Scan the QR code directly with your phone, or share the image with others.", dlQr: "Download QR Code",
     copied: "Copied!", invalid: "Invalid phone number", noMsg: "Your message will appear here",
     footer: "© {year} Netolink.com · All rights reserved"
   },
@@ -503,9 +512,10 @@ const T = {
     title: "מחולל קישורי וואטסאפ",
     subtitle: "צרו קישור לפתיחת שיחה עם הודעה מקדימה",
     phoneLbl: "מספר טלפון", msgLbl: "הודעה מקדימה", opt: "(לא חובה)",
-    toggle: "הצג קישור API מלא", open: "פתח בוואטסאפ", copy: "העתק קישור",
-    preview: "— תצוגה מקדימה בלבד —", hint: "הזן מספר לתצוגה מקדימה",
-    status: "לחץ לפתיחת שיחה", linkLbl: "הקישור שנוצר", qr: "סרוק לפתיחת וואטסאפ",
+    toggle: "הצגת קישור API מלא", open: "פתיחה בוואטסאפ", copy: "העתקת קישור",
+    preview: "— תצוגה מקדימה בלבד —", hint: "הזינו מספר לתצוגה מקדימה",
+    status: "לחיצה לפתיחת שיחה", linkLbl: "הקישור שנוצר", qr: "סריקה או שליחה לפתיחת וואטסאפ",
+    qrDesc: "ניתן לסרוק את קוד ה-QR ישירות עם הטלפון, או לשלוח את התמונה לאחרים.", dlQr: "הורדת קוד QR",
     copied: "הועתק!", invalid: "מספר טלפון לא תקין", noMsg: "ההודעה שלך תופיע כאן",
     footer: "© {year} Netolink.com · כל הזכויות שמורות"
   },
@@ -515,7 +525,8 @@ const T = {
     phoneLbl: "Номер телефона", msgLbl: "Предустановленное сообщение", opt: "(необязательно)",
     toggle: "Показать полную API ссылку", open: "Открыть в WhatsApp", copy: "Копировать ссылку",
     preview: "— только предпросмотр —", hint: "Введите номер для просмотра",
-    status: "нажмите чтобы открыть", linkLbl: "Сгенерированная ссылка", qr: "Сканируйте для WhatsApp",
+    status: "нажмите чтобы открыть", linkLbl: "Сгенерированная ссылка", qr: "Сканируйте или отправьте для WhatsApp",
+    qrDesc: "Отсканируйте QR-код телефоном или отправьте изображение другим.", dlQr: "Скачать QR-код",
     copied: "Скопировано!", invalid: "Неверный номер телефона", noMsg: "Ваше сообщение появится здесь",
     footer: "© {year} Netolink.com · Все права защищены"
   }
@@ -562,6 +573,8 @@ function applyT() {
   document.getElementById('t-status').textContent = t.status;
   document.getElementById('t-link-lbl').textContent = t.linkLbl;
   document.getElementById('t-qr').textContent = t.qr;
+  document.getElementById('t-qr-desc').textContent = t.qrDesc || '';
+  document.getElementById('t-dl-qr').textContent = t.dlQr || 'Download QR Code';
   document.getElementById('t-footer').textContent = t.footer.replace('{year}', new Date().getFullYear());
   document.getElementById('msg').placeholder = t.noMsg;
   if (lang === 'he') {
@@ -600,7 +613,16 @@ function gen() {
     return;
   }
 
-  if (phone.length < 6 || phone.length > 15) {
+  // Israel: 9 digits without leading 0, or 10 digits with it
+  const isIsrael = document.getElementById('dial').value === '+972';
+  const phoneForCheck = phone.startsWith('0') ? phone.slice(1) : phone;
+  let valid = false;
+  if (isIsrael) {
+    valid = phoneForCheck.length === 9;
+  } else {
+    valid = phone.length >= 6 && phone.length <= 15;
+  }
+  if (!valid) {
     errEl.style.display = 'block';
     errEl.textContent = T[lang].invalid;
     link = '';
@@ -658,6 +680,16 @@ function doCopy() {
 
 function doOpen() {
   if (link) window.open(link, '_blank');
+}
+
+function dlQr() {
+  const img = document.getElementById('qr-img');
+  if (!img.src || !img.src.includes('qrserver')) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = 'whatsapp-qr.png';
+  a.target = '_blank';
+  a.click();
 }
 
 init();
