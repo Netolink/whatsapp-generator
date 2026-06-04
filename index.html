@@ -119,6 +119,12 @@ textarea { resize: none; height: 80px; line-height: 1.55; }
   margin-top: 4px;
   display: none;
 }
+.phone-hint {
+  font-size: 11px;
+  color: #999;
+  margin-top: 5px;
+  line-height: 1.4;
+}
 
 /* Toggle */
 .toggle-row {
@@ -352,9 +358,10 @@ body.rtl input[type=tel] { direction: ltr; text-align: right; }
         <label id="t-phone-lbl">Phone number</label>
         <div class="phone-row">
           <select id="dial" onchange="gen()"></select>
-          <input type="tel" id="phone" oninput="gen()" placeholder="505555447">
+          <input type="tel" id="phone" oninput="sanitizePhone(this);gen()" placeholder="0501234567">
         </div>
         <div class="err" id="perr">Invalid number</div>
+        <div class="phone-hint" id="t-phone-hint"></div>
       </div>
 
       <div class="field">
@@ -503,7 +510,7 @@ const T = {
     phoneLbl: "Phone number", msgLbl: "Pre-filled message", opt: "(optional)",
     toggle: "Show full API link", open: "Open in WhatsApp", copy: "Copy link",
     preview: "— preview only —", hint: "Enter a number to preview",
-    status: "tap to open chat", linkLbl: "Generated link", qr: "Scan or share to open WhatsApp",
+    phoneHint: "Enter mobile or landline number only — no dashes, dots, or country code.", status: "tap to open chat", linkLbl: "Generated link", qr: "Scan or share to open WhatsApp",
     qrDesc: "Scan the QR code directly with your phone, or share the image with others.", dlQr: "Download QR Code",
     copied: "Copied!", invalid: "Invalid phone number", noMsg: "Your message will appear here",
     footer: "© {year} Netolink.com · All rights reserved"
@@ -514,9 +521,9 @@ const T = {
     phoneLbl: "מספר טלפון", msgLbl: "הודעה מקדימה", opt: "(לא חובה)",
     toggle: "הצגת קישור API מלא", open: "פתיחה בוואטסאפ", copy: "העתקת קישור",
     preview: "— תצוגה מקדימה בלבד —", hint: "הזינו מספר לתצוגה מקדימה",
-    status: "לחיצה לפתיחת שיחה", linkLbl: "הקישור שנוצר", qr: "סריקה או שליחה לפתיחת וואטסאפ",
+    phoneHint: "יש להזין ספרות בלבד — ללא מקף, נקודה או קידומת מדינה.", status: "לחיצה לפתיחת שיחה", linkLbl: "הקישור שנוצר", qr: "סריקה או שליחה לפתיחת וואטסאפ",
     qrDesc: "ניתן לסרוק את קוד ה-QR ישירות עם הטלפון, או לשלוח את התמונה לאחרים.", dlQr: "הורדת קוד QR",
-    copied: "הועתק!", invalid: "מספר טלפון לא תקין", noMsg: "ההודעה שלך תופיע כאן",
+    copied: "הועתק!", invalid: "מספר טלפון לא תקין", noMsg: "ההודעה תופיע כאן",
     footer: "© {year} Netolink.com · כל הזכויות שמורות"
   },
   ru: {
@@ -525,7 +532,7 @@ const T = {
     phoneLbl: "Номер телефона", msgLbl: "Предустановленное сообщение", opt: "(необязательно)",
     toggle: "Показать полную API ссылку", open: "Открыть в WhatsApp", copy: "Копировать ссылку",
     preview: "— только предпросмотр —", hint: "Введите номер для просмотра",
-    status: "нажмите чтобы открыть", linkLbl: "Сгенерированная ссылка", qr: "Сканируйте или отправьте для WhatsApp",
+    phoneHint: "Только цифры — без дефисов, точек и кода страны.", status: "нажмите чтобы открыть", linkLbl: "Сгенерированная ссылка", qr: "Сканируйте или отправьте для WhatsApp",
     qrDesc: "Отсканируйте QR-код телефоном или отправьте изображение другим.", dlQr: "Скачать QR-код",
     copied: "Скопировано!", invalid: "Неверный номер телефона", noMsg: "Ваше сообщение появится здесь",
     footer: "© {year} Netolink.com · Все права защищены"
@@ -572,6 +579,7 @@ function applyT() {
   document.getElementById('t-hint').textContent = t.hint;
   document.getElementById('t-status').textContent = t.status;
   document.getElementById('t-link-lbl').textContent = t.linkLbl;
+  document.getElementById('t-phone-hint').textContent = t.phoneHint || '';
   document.getElementById('t-qr').textContent = t.qr;
   document.getElementById('t-qr-desc').textContent = t.qrDesc || '';
   document.getElementById('t-dl-qr').textContent = t.dlQr || 'Download QR Code';
@@ -613,12 +621,15 @@ function gen() {
     return;
   }
 
-  // Israel: 9 digits without leading 0, or 10 digits with it
+  // Israel: with leading 0 -> 9 or 10 digits total; without 0 -> 8 or 9 digits
   const isIsrael = document.getElementById('dial').value === '+972';
-  const phoneForCheck = phone.startsWith('0') ? phone.slice(1) : phone;
   let valid = false;
   if (isIsrael) {
-    valid = phoneForCheck.length === 9;
+    if (phone.startsWith('0')) {
+      valid = phone.length === 9 || phone.length === 10;
+    } else {
+      valid = phone.length === 8 || phone.length === 9;
+    }
   } else {
     valid = phone.length >= 6 && phone.length <= 15;
   }
@@ -680,6 +691,16 @@ function doCopy() {
 
 function doOpen() {
   if (link) window.open(link, '_blank');
+}
+
+function sanitizePhone(el) {
+  // Remove anything that isn't a digit
+  const pos = el.selectionStart;
+  const before = el.value;
+  el.value = before.replace(/[^0-9]/g, '');
+  // Restore cursor position as best we can
+  const diff = before.length - el.value.length;
+  el.setSelectionRange(Math.max(0, pos - diff), Math.max(0, pos - diff));
 }
 
 function dlQr() {
